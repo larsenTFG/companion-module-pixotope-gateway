@@ -1,0 +1,28 @@
+{
+	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
+	"type": "connection",
+	"id": "pixotope-gateway",
+	"name": "pixotope-gateway",
+	"shortname": "Pixotope",
+	"description": "Control Pixotope virtual production graphics via the Pixotope Gateway HTTP API",
+	"version": "0.0.0",
+	"license": "MIT",
+	"repository": "git+https://github.com/larsenTFG/companion-module-pixotope-gateway.git",
+	"bugs": "https://github.com/larsenTFG/companion-module-pixotope-gateway/issues",
+	"maintainers": [
+		{
+			"name": "Oystein Larsen",
+			"email": "oystein.larsen@pixotope.com"
+		}
+	],
+	"runtime": {
+		"type": "node18",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "../dist/main.js"
+	},
+	"legacyIds": [],
+	"manufacturer": "Pixotope",
+	"products": ["Pixotope"],
+	"keywords": ["virtual production", "AR", "broadcast", "graphics", "compositing"]
+}
