@@ -64,6 +64,11 @@ Set Property with a pasted editor URL and a value:
 
 ![Set Property action](documentation/images/set-property.png)
 
+**Set Property — about the value:** the URL you copy from Pixotope includes the property's _current_
+value. The module ignores any value embedded in the URL — paste the URL into the **Editor URL**
+field (it provides the object and property to target) and type the value you want to send in the
+separate **Value** field.
+
 ### Feedbacks
 
 - **Gateway connection OK** — turns the button green while the Gateway is reachable.

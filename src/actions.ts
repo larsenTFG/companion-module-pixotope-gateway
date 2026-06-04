@@ -102,7 +102,8 @@ export function UpdateActions(self: ModuleInstance): void {
 					label: 'Value',
 					default: '',
 					useVariables: true,
-					tooltip: 'Plain text, number, or JSON. JSON is auto-detected (e.g. {"R":1,"G":0,"B":0}).',
+					tooltip:
+						'The value to send. Any value embedded in the pasted URL is ignored — set it here. Plain text, number, or JSON (auto-detected, e.g. {"R":1,"G":0,"B":0}).',
 				},
 				{
 					id: 'isAdjustment',
