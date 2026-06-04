@@ -133,7 +133,8 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 					label: 'State Path',
 					default: '',
 					useVariables: true,
-					tooltip: 'e.g. State.General.CompositingColorSpace',
+					tooltip:
+						'e.g. State.General.FrameRate. Tip: open …/publish?Type=Get&Target=Store&Name=State in a browser to browse valid paths. A wrong path returns null (blank).',
 				},
 				{
 					id: 'target',

@@ -1,22 +1,47 @@
 # companion-module-pixotope-gateway
 
-Control [Pixotope](https://www.pixotope.com/) virtual production graphics from Bitfocus Companion
-and Buttons via the **Pixotope Gateway** HTTP API.
+![Version](https://img.shields.io/github/package-json/v/larsenTFG/companion-module-pixotope-gateway)
+![License](https://img.shields.io/github/license/larsenTFG/companion-module-pixotope-gateway)
 
-The module can set and read object properties in the Pixotope engine, read show-wide values from
-the Pixotope Store, and keep Companion variables updated live. See
-[companion/HELP.md](./companion/HELP.md) for usage and [LICENSE](./LICENSE) for licensing.
+Control [Pixotope](https://www.pixotope.com/) virtual production graphics from Bitfocus
+**Companion** and **Buttons** via the **Pixotope Gateway** HTTP API.
+
+User documentation is in **[companion/HELP.md](./companion/HELP.md)** (the same text Companion shows
+in-app). See [LICENSE](./LICENSE) for licensing.
+
+## Compatibility
+
+- Bitfocus **Companion 4.x** (tested on 4.3.3) and Bitfocus **Buttons** (tested on 1.6.x).
+- Module runtime: **Node 22**, `nodejs-ipc` (the stable Companion module API).
+- Pixotope with **Pixotope Gateway** reachable over the network.
 
 ## Features
 
-- **Set Property** / **Get Property** — paste a property URL copied from the editor right-click menu.
+- **Set Property / Get Property** — paste the URL copied from the editor's right-click menu; no
+  manual field entry.
 - **Store: Set Value** — write show-wide settings to the Pixotope Store.
 - **Raw API Request** — send any Topic/Message captured from the Director API Log.
 - **Feedbacks** — Gateway connection status, "property differs from default", and live
-  "watch property/store value → variable".
+  "watch property/Store value → variable".
+- Polling is optimised for live use: only watched values are polled, with a configurable refresh
+  interval and a pooled keep-alive connection.
 
-## Getting started
+## Getting started (developers)
 
-Running `yarn` installs dependencies. Build once with `yarn build`, or use `yarn dev` to recompile
-on change. To develop against Companion, point Companion's _Developer modules path_ at the folder
-containing this module.
+```sh
+yarn          # install dependencies
+yarn build    # compile once to dist/
+yarn dev      # recompile on change
+yarn package  # build a distributable pkg/ + .tgz
+```
+
+To develop against Companion/Buttons, set the **Developer modules path** in the launcher to the
+folder that _contains_ this module, then run `yarn dev`. The app loads it live and reloads on
+rebuild — no re-import needed.
+
+## Changelog
+
+### 1.0.0
+
+- Initial release: Set/Get Property, Store value, Raw API Request, connection & property feedbacks,
+  and live property/Store variable watching.

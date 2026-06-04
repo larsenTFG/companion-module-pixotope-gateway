@@ -1,5 +1,6 @@
 import type { ModuleInstance } from './main'
 import type { CompanionPresetDefinitions } from '@companion-module/base'
+import { STATUS_ICON_PNG64 } from './icons'
 
 export function UpdatePresets(self: ModuleInstance): void {
 	const presets: CompanionPresetDefinitions = {}
@@ -9,10 +10,13 @@ export function UpdatePresets(self: ModuleInstance): void {
 		category: 'Status',
 		name: 'Connection status',
 		style: {
-			text: 'Pixotope',
+			// Transparent icon over the background colour, which the connection
+			// feedback recolours (green = connected, dark red = disconnected).
+			text: '',
 			size: 'auto',
 			color: 0xffffff,
 			bgcolor: 0x660000,
+			png64: STATUS_ICON_PNG64,
 		},
 		steps: [],
 		feedbacks: [

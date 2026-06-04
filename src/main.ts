@@ -215,7 +215,16 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			if (probe.kind === 'store') {
 				if (probe.name === '') return null
 				const response = await this.api.get(probe.target, probe.name)
-				if (!extractFailure(response.body)) value = formatResult(extractResult(response.body))
+				const failure = extractFailure(response.body)
+				if (failure) {
+					this.log('debug', `Watch store "${probe.name}" failed: ${failure}`)
+				} else {
+					const raw = extractResult(response.body)
+					if (raw === null || raw === undefined) {
+						this.log('debug', `Watch store "${probe.name}" returned null — check the State Path is correct`)
+					}
+					value = formatResult(raw)
+				}
 			} else {
 				if (probe.objectSearch === '' || probe.propertyPath === '') return null
 				const response = await this.api.call(probe.target, 'GetProperty', {

@@ -1,114 +1,113 @@
 ## Pixotope (Gateway API)
 
-Control Pixotope virtual production graphics from Companion by sending commands to the
+Control Pixotope virtual production graphics from Companion/Buttons by sending commands to the
 **Pixotope Gateway** HTTP API.
+
+### Compatibility
+
+- Works with Bitfocus **Companion 4.x** and Bitfocus **Buttons**.
+- Requires a running Pixotope system with **Pixotope Gateway** reachable on the network.
 
 ### Requirements
 
-- A running Pixotope system with **Pixotope Gateway** reachable on the network.
-- Network access from the Companion host to the Gateway machine.
+- Network access from the Companion/Buttons host to the Gateway machine.
+- The Gateway exposes a single publish endpoint:
 
-The Gateway exposes a single publish endpoint:
+  ```
+  http://{Gateway IP}:{Port}/gateway/{API Version}/publish
+  ```
 
-```
-http://{Gateway IP}:{Port}/gateway/{API Version}/publish
-```
+### Configuration
 
-### Connection settings
+Set these in the connection settings:
 
-| Field                     | Description                                                     | Default          |
-| ------------------------- | --------------------------------------------------------------- | ---------------- |
-| Gateway IP                | IP address of the machine running Pixotope Gateway              | `127.0.0.1`      |
-| Gateway Port              | Gateway HTTP port                                               | `16208`          |
-| Gateway API Version       | Version segment of the publish URL; match your Pixotope install | `2.2.0`          |
-| Default Engine Target     | Service name used when an action's target is left blank         | `~LOCAL~-Engine` |
-| Live Value Poll Interval  | How often (ms) live "watch" feedbacks refresh; lower = fresher  | `1000`           |
-| Connection Check Interval | Heartbeat used only when nothing is being watched; `0` disables | `5000`           |
+- **Gateway IP** — IP of the machine running Pixotope Gateway (default `127.0.0.1`).
+- **Gateway Port** — Gateway HTTP port (default `16208`).
+- **Gateway API Version** — the version segment of the publish URL (default `2.2.0`). The Gateway
+  does not validate this, so the default is fine in most setups.
+- **Default Engine Target** — service name used when an action leaves the target blank
+  (default `~LOCAL~-Engine`).
+- **Live Value Poll Interval** — how often (ms) live "watch" feedbacks refresh (default `1000`).
+  Lower = fresher, more traffic.
+- **Connection Check Interval** — heartbeat used only when nothing is being watched
+  (default `5000`; `0` disables it).
 
-The connection indicator turns green once Gateway responds.
+The connection indicator turns green once the Gateway responds.
 
-### Network traffic & freshness (designed for live use)
+![Connection settings](documentation/images/config.png)
 
-The module is built to keep watched values fresh without flooding the Gateway:
+### Finding object and Store paths
 
-- **Only what's on screen is polled.** A request is sent only for properties/values that have a
-  live **Watch** feedback attached. Nothing else is polled in the background.
-- **No redundant heartbeat.** While any value is being watched, those polls already prove the
-  Gateway is reachable, so the separate connection check is **skipped entirely** — the connection
-  indicator is driven by the watch traffic itself, so drops are detected promptly with zero extra
-  requests. The **Connection Check Interval** heartbeat only runs when nothing is being watched.
-- **Pooled keep-alive connection.** Requests reuse a small pool of sockets instead of opening a new
-  TCP connection each time, which is far gentler on the Gateway over a long session.
-- **No pile-ups.** A new poll never starts while the previous one is still in flight.
+You rarely type these by hand:
 
-Tune **Live Value Poll Interval** for the staleness/traffic trade-off: lower it (e.g. `500`) for
-mission-critical readouts, raise it to reduce traffic. Total traffic ≈ _(number of watch feedbacks)
-÷ (interval)_ requests per second. Actions fire immediately on press and are never delayed by polling.
-
-### Connection & reconnection
-
-If the Gateway becomes unreachable the indicator goes red, and the module **reconnects
-automatically** as soon as the Gateway responds again — no manual step is needed. To force a
-reconnect, disable and re-enable the connection (or open its config and Save).
-
-If the Pixotope Gateway process itself has stopped, only restarting Pixotope brings it back; that is
-a server-side condition the module cannot recover from.
+- **Editor right-click** — in the Pixotope editor, right-click a property on an object to copy its
+  Gateway URL, e.g.
+  `…/publish?Type=Call&Target=~LOCAL~-Engine&Method=GetProperty&ParamObjectSearch=DirectionalLight_0.LightComponent0&ParamPropertyPath=Intensity`.
+  Paste it into **Set Property**, **Get Property**, or the property feedbacks.
+- **Director API Log** — open the **API Log** tab, perform the action in the UI, then copy the
+  logged Topic/Message JSON into **Raw API Request**.
+- **Store paths** — browse the Store tree by opening this in a browser, then drill into a parent to
+  see its child keys:
+  `http://{Gateway IP}:{Port}/gateway/2.2.0/publish?Type=Get&Target=Store&Name=State`
+  (e.g. `State.General.FrameRate`). A wrong or empty path returns `null`, which shows as a blank
+  variable.
 
 ### Actions
 
-| Action                              | What it does                                                         |
-| ----------------------------------- | -------------------------------------------------------------------- |
-| **Engine: Set Property**            | Set a property value (text, colour, transform, asset reference)      |
-| **Engine: Get Property**            | Read a property value into a Companion variable for display/feedback |
-| **Store: Set Value**                | Set a show-wide value in the Pixotope Store                          |
-| **Raw API Request**                 | Send any Topic/Message — paste payloads from the Director API Log    |
-| **Clear stored property variables** | Remove all `$(pixotope:prop_*)` variables created at runtime         |
+- **Engine: Set Property** — set a property value. Paste the editor URL and enter the value.
+- **Engine: Get Property** — read a property value once (on press) into a Companion variable.
+- **Store: Set Value** — set a show-wide value in the Pixotope Store.
+- **Raw API Request** — send any Topic/Message; paste payloads captured from the Director API Log.
+- **Clear stored property variables** — remove all `$(pixotope:prop_*)` variables created at runtime.
 
-**Set Property**, **Get Property**, and the **Property differs from default** feedback all take a
-single **Editor URL**: right-click the property in the editor, copy its URL, and paste it in.
-Set Property adds a value; Get Property adds a variable name. The URL field accepts Companion
-variables, so you can build it dynamically.
+Set Property with a pasted editor URL and a value:
 
-### Tip: capture exact payloads
-
-Two easy ways to grab the exact call you need:
-
-- **Editor right-click** — in the Pixotope editor, right-click a property on an object to copy
-  its Gateway URL, e.g.
-  `…/publish?Type=Call&Target=~LOCAL~-Engine&Method=GetProperty&ParamObjectSearch=DirectionalLight_0.LightComponent0&ParamPropertyPath=Intensity`.
-  Paste it into the **Engine: Set Property** or **Engine: Get Property** action.
-- **Director API Log** — open the **API Log** tab, perform the action in the UI, then copy the
-  logged Topic/Message JSON into the **Raw API Request** action.
-
-The `Param<Key>` query-string convention (e.g. `ParamObjectSearch`) maps to `Message.Params.<Key>`,
-so the right-click URL and the JSON payload describe the same call.
+![Set Property action](documentation/images/set-property.png)
 
 ### Feedbacks
 
-- **Gateway connection OK** — turns the button green while Gateway is reachable.
-- **Engine: Property differs from default** — paste a property's editor URL; the module polls that
-  property and turns the button orange while its value differs from its default.
+- **Gateway connection OK** — turns the button green while the Gateway is reachable.
+- **Engine: Property differs from default** — paste a property's editor URL; turns the button
+  orange while the property's value differs from its default.
 - **Engine: Watch property → variable (live)** — paste a property's editor URL and a variable name;
-  the module polls that property (~1s) and keeps `$(pixotope:prop_<name>)` updated with its current
-  value. Applies no styling — add it to any button and read the variable anywhere (other buttons,
-  triggers, text). Use this when you want a self-updating value rather than the press-to-refresh
-  **Engine: Get Property** action.
-- **Store: Watch value → variable (live)** — like the property watcher, but reads a value from the
-  Pixotope **Store** (a `Get` on a state path, e.g. `State.General.CompositingColorSpace`) rather
-  than an engine property. Enter the state path, the service (`Store` by default), and a variable
-  name; the value is kept live in `$(pixotope:prop_<name>)`.
+  the property is polled and kept live in `$(pixotope:prop_<name>)`. Applies no styling.
+- **Store: Watch value → variable (live)** — the same, but reads a value from the Pixotope **Store**
+  (a state path such as `State.General.FrameRate`).
 
 ### Variables
 
-- `$(pixotope:connection_status)` — `Connected` / `Disconnected` / `Connecting`
-- `$(pixotope:gateway_url)` — the resolved publish URL
-- `$(pixotope:prop_<name>)` — a property value, kept live by **Engine: Watch property → variable**
-  or set on demand by **Engine: Get Property**. Module variables are global, so reference it from
-  any button, trigger, or text field. These are created at runtime (not predefined) and exist for
-  the session. Removing a **Watch** feedback removes its variable automatically (if no other
-  feedback uses it); the **Clear stored property variables** action removes them all at once.
+- `$(pixotope:connection_status)` — `Connected` / `Disconnected` / `Connecting`.
+- `$(pixotope:gateway_url)` — the resolved publish URL.
+- `$(pixotope:prop_<name>)` — a property or Store value, kept live by a **Watch** feedback or set on
+  demand by **Get Property**. Module variables are global, so reference them from any button,
+  trigger, or text field. They are created at runtime (not predefined) and last for the session;
+  removing a Watch feedback removes its variable, and **Clear stored property variables** removes
+  them all.
+
+A button displaying a live property value via a watched variable:
+
+![Watching a value into a variable](documentation/images/watch-variable.png)
+
+### Network traffic & freshness (built for live use)
+
+- **Only what's on screen is polled** — a request is sent only for values with a live Watch feedback
+  attached.
+- **No redundant heartbeat** — while values are being watched, those polls prove reachability, so the
+  separate connection check is skipped; the indicator is driven by the watch traffic.
+- **Pooled keep-alive connection** and **no overlapping polls**, so the Gateway isn't hammered.
+- Actions fire immediately on press and are never delayed by polling.
+
+### Troubleshooting
+
+- **Variable is blank** — the Store/property path returned `null`; double-check the path (see
+  _Finding object and Store paths_). The debug log shows `… returned null` when this happens.
+- **Connection indicator red** — the Gateway is unreachable. The module reconnects automatically
+  once it responds again; to force it, disable/re-enable the connection. If the Gateway process
+  itself stopped, restart Pixotope (server-side; the module cannot recover that).
+- **Module won't appear / load after re-importing** — remove the previously installed version first,
+  then import the new package, and restart the app.
 
 ### Authentication
 
-The Pixotope Gateway API is designed for trusted studio LANs and does not use API keys.
-Keep the Gateway on a protected network.
+The Pixotope Gateway API is designed for trusted studio LANs and does not use API keys. Keep the
+Gateway on a protected network.
