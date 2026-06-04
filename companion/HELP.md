@@ -67,8 +67,59 @@ Set Property with a pasted editor URL and a value:
 **Set Property — about the value:** the URL you copy from Pixotope includes the property's _current_
 value. The module ignores any value embedded in the URL — paste the URL into the **Editor URL**
 field (it provides the object and property to target) and type the value you want to send in the
-separate **Value** field. The Pixotope **engine must be in play / simulation mode** for property
-changes to take effect.
+separate **Value** field.
+
+### Raw API Request — examples
+
+The **Raw API Request** action sends any Topic/Message. Field rules: **Name** is used only for
+`Set`/`Get`; **Method** is used only for `Call`; a blank **Target** means the _Default Engine
+Target_. It is fire-and-forget — it logs the HTTP status at debug but does not display returned
+values (use the **Watch** feedbacks to read values back).
+
+**Set a property** (e.g. change a light's intensity)
+
+- Topic Type: `Call`
+- Target: _(blank, or `~LOCAL~-Engine`)_
+- Method: `SetProperty`
+- Message:
+
+  ```json
+  { "Params": { "ObjectSearch": "DirectionalLight_1.LightComponent0", "PropertyPath": "Intensity", "Value": 50 } }
+  ```
+
+**Get a property**
+
+- Topic Type: `Call`
+- Method: `GetProperty`
+- Message:
+
+  ```json
+  { "Params": { "ObjectSearch": "DirectionalLight_1.LightComponent0", "PropertyPath": "Intensity" } }
+  ```
+
+**Call a function on an actor**
+
+- Topic Type: `Call`
+- Method: `CallFunction`
+- Message:
+
+  ```json
+  { "Params": { "ObjectSearch": "MyActor", "FunctionName": "Play", "FunctionArguments": {} } }
+  ```
+
+**Get a Store value**
+
+- Topic Type: `Get`
+- Target: `Store`
+- Name: `State.General.FrameRate`
+- Message: `{}`
+
+**Set a Store value**
+
+- Topic Type: `Set`
+- Target: `Store`
+- Name: `State.General.<writable path>`
+- Message: `{ "Value": "yourValue" }`
 
 ### Feedbacks
 
@@ -105,10 +156,6 @@ A button displaying a live property value via a watched variable:
 
 ### Troubleshooting
 
-- **A Set Property / Call returns success (HTTP 200) but nothing changes in the scene** — the
-  Pixotope **engine must be in play / simulation mode**. In edit/stopped mode the Gateway accepts
-  the call but the engine does not apply property changes. Put the engine in run/play mode and try
-  again.
 - **Variable is blank** — the Store/property path returned `null`; double-check the path (see
   _Finding object and Store paths_). The debug log shows `… returned null` when this happens.
 - **Connection indicator red** — the Gateway is unreachable. The module reconnects automatically
