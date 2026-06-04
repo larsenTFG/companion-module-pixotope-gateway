@@ -67,7 +67,8 @@ Set Property with a pasted editor URL and a value:
 **Set Property — about the value:** the URL you copy from Pixotope includes the property's _current_
 value. The module ignores any value embedded in the URL — paste the URL into the **Editor URL**
 field (it provides the object and property to target) and type the value you want to send in the
-separate **Value** field.
+separate **Value** field. The Pixotope **engine must be in play / simulation mode** for property
+changes to take effect.
 
 ### Feedbacks
 
@@ -104,6 +105,10 @@ A button displaying a live property value via a watched variable:
 
 ### Troubleshooting
 
+- **A Set Property / Call returns success (HTTP 200) but nothing changes in the scene** — the
+  Pixotope **engine must be in play / simulation mode**. In edit/stopped mode the Gateway accepts
+  the call but the engine does not apply property changes. Put the engine in run/play mode and try
+  again.
 - **Variable is blank** — the Store/property path returned `null`; double-check the path (see
   _Finding object and Store paths_). The debug log shows `… returned null` when this happens.
 - **Connection indicator red** — the Gateway is unreachable. The module reconnects automatically
