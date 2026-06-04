@@ -1,7 +1,7 @@
 # companion-module-pixotope-gateway
 
-![Version](https://img.shields.io/github/package-json/v/larsenTFG/companion-module-pixotope-gateway)
-![License](https://img.shields.io/github/license/larsenTFG/companion-module-pixotope-gateway)
+![Version](https://img.shields.io/github/package-json/v/bitfocus/companion-module-pixotope-gateway)
+![License](https://img.shields.io/github/license/bitfocus/companion-module-pixotope-gateway)
 
 Control [Pixotope](https://www.pixotope.com/) virtual production graphics from Bitfocus
 **Companion** and **Buttons** via the **Pixotope Gateway** HTTP API.

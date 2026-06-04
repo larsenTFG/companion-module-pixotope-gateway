@@ -7,8 +7,8 @@
 	"description": "Control Pixotope virtual production graphics via the Pixotope Gateway HTTP API",
 	"version": "0.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/larsenTFG/companion-module-pixotope-gateway.git",
-	"bugs": "https://github.com/larsenTFG/companion-module-pixotope-gateway/issues",
+	"repository": "git+https://github.com/bitfocus/companion-module-pixotope-gateway.git",
+	"bugs": "https://github.com/bitfocus/companion-module-pixotope-gateway/issues",
 	"maintainers": [
 		{
 			"name": "Oystein Larsen",
