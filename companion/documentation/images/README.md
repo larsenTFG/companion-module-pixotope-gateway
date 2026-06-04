@@ -11,7 +11,6 @@ renders in-app and ships inside the packaged module.
 - **config.png** — connection settings dialog. ✅ added & referenced
 - **set-property.png** — Set Property action with a pasted editor URL + value. ✅ added & referenced
 - **watch-variable.png** — button showing a live `$(pixotope:prop_…)` value. ✅ added & referenced
-- **presets.png** — the Presets → Pixotope tab. ☐ still to capture
 
 ## Preset icon
 

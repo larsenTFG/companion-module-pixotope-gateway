@@ -41,7 +41,7 @@ rebuild — no re-import needed.
 
 ## Changelog
 
-### 1.0.0
+### 1.0.1
 
 - Initial release: Set/Get Property, Store value, Raw API Request, connection & property feedbacks,
   and live property/Store variable watching.
