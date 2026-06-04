@@ -5,6 +5,7 @@ export type ModuleConfig = {
 	port: number
 	version: string
 	pollInterval: number
+	feedbackPollInterval: number
 	defaultEngine: string
 }
 
@@ -55,13 +56,25 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 		},
 		{
 			type: 'number',
+			id: 'feedbackPollInterval',
+			label: 'Live Value Poll Interval (ms)',
+			width: 6,
+			min: 250,
+			max: 60000,
+			default: 1000,
+			tooltip:
+				'How often live "watch" feedbacks refresh their values. Lower = fresher (less stale) but more network traffic. Only properties/values with a watch feedback attached are polled.',
+		},
+		{
+			type: 'number',
 			id: 'pollInterval',
-			label: 'State Poll Interval (ms)',
+			label: 'Connection Check Interval (ms)',
 			width: 6,
 			min: 0,
 			max: 60000,
-			default: 1000,
-			tooltip: 'How often to poll Gateway for connection state. Set to 0 to disable polling.',
+			default: 5000,
+			tooltip:
+				'Heartbeat used only when no live values are being watched (watched values already prove the connection). Higher = gentler on the Gateway. Set to 0 to disable.',
 		},
 	]
 }

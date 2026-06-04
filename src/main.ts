@@ -39,8 +39,8 @@ interface WatchedProbe {
 	lastValue?: string
 }
 
-/** How often (ms) to poll values that have a feedback attached. */
-const FEEDBACK_POLL_INTERVAL = 1000
+/** Fallback live-value poll interval (ms) when the config value is missing. */
+const DEFAULT_FEEDBACK_POLL_INTERVAL = 1000
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
@@ -48,6 +48,9 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	connected = false
 	private pollTimer: ReturnType<typeof setInterval> | undefined
 	private feedbackTimer: ReturnType<typeof setInterval> | undefined
+	/** Guards to prevent overlapping polls piling up if the Gateway is slow. */
+	private polling = false
+	private feedbackPolling = false
 	/** Property variables created on demand by the "Get Property" action: id -> display name. */
 	private propertyVariables = new Map<string, string>()
 	/** Active property/store feedbacks polled on an interval, keyed by feedback id. */
@@ -73,6 +76,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	async destroy(): Promise<void> {
 		this.stopPolling()
 		this.stopFeedbackPolling()
+		;(this.api as PixotopeApi | undefined)?.close()
 		this.log('debug', 'destroy')
 	}
 
@@ -80,6 +84,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.config = config
 		this.configureApi()
 		this.startPolling()
+		// Re-apply the (possibly changed) live-value poll interval to active watchers.
+		this.startFeedbackPolling()
 	}
 
 	// Return config fields for web config
@@ -88,6 +94,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	configureApi(): void {
+		// Close any previous socket pool before replacing the client.
+		;(this.api as PixotopeApi | undefined)?.close()
 		this.api = new PixotopeApi(this.config.host, this.config.port, this.config.version)
 		this.updateStatus(InstanceStatus.Connecting)
 		this.setVariableValues({
@@ -114,8 +122,20 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	async poll(): Promise<void> {
-		const ok = await this.api.ping()
-		this.setConnected(ok)
+		// Skip if the previous heartbeat is still in flight, so a slow Gateway
+		// never causes requests to pile up.
+		if (this.polling) return
+		// When live values are being watched, those polls already prove the
+		// Gateway is reachable, so the extra heartbeat request is redundant — skip
+		// it to keep network traffic minimal.
+		if (this.feedbackProps.size > 0) return
+		this.polling = true
+		try {
+			const ok = await this.api.ping()
+			this.setConnected(ok)
+		} finally {
+			this.polling = false
+		}
 	}
 
 	/**
@@ -145,8 +165,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	private startFeedbackPolling(): void {
-		if (this.feedbackTimer) return
-		this.feedbackTimer = setInterval(() => void this.pollFeedbackProperties(), FEEDBACK_POLL_INTERVAL)
+		this.stopFeedbackPolling()
+		if (this.feedbackProps.size === 0) return
+		const interval = this.config.feedbackPollInterval || DEFAULT_FEEDBACK_POLL_INTERVAL
+		this.feedbackTimer = setInterval(() => void this.pollFeedbackProperties(), interval)
 	}
 
 	private stopFeedbackPolling(): void {
@@ -158,9 +180,18 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	/** Poll every feedback probe; update modified-state and live variables. */
 	private async pollFeedbackProperties(): Promise<void> {
-		if (this.feedbackProps.size === 0) return
+		if (this.feedbackProps.size === 0 || this.feedbackPolling) return
+		this.feedbackPolling = true
+		try {
+			await this.runFeedbackPoll()
+		} finally {
+			this.feedbackPolling = false
+		}
+	}
+
+	private async runFeedbackPoll(): Promise<void> {
 		let changed = false
-		await Promise.all(
+		const results = await Promise.all(
 			[...this.feedbackProps.values()].map(async (probe) =>
 				this.pollProbe(probe, () => {
 					changed = true
@@ -168,30 +199,38 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			),
 		)
 		if (changed) this.checkFeedbacks('property_modified')
+		// Derive connection status from the watch traffic itself, so drops are
+		// detected promptly without sending any extra heartbeat request.
+		if (results.includes(true)) this.setConnected(true)
+		else if (results.includes(false)) this.setConnected(false)
 	}
 
-	private async pollProbe(probe: WatchedProbe, markChanged: () => void): Promise<void> {
+	/**
+	 * Poll one probe. Returns true if the Gateway responded (reachable), false on a
+	 * network/timeout error, or null if the probe was skipped (nothing requested).
+	 */
+	private async pollProbe(probe: WatchedProbe, markChanged: () => void): Promise<boolean | null> {
 		try {
 			let value: string | undefined
 			if (probe.kind === 'store') {
-				if (probe.name === '') return
+				if (probe.name === '') return null
 				const response = await this.api.get(probe.target, probe.name)
-				if (extractFailure(response.body)) return
-				value = formatResult(extractResult(response.body))
+				if (!extractFailure(response.body)) value = formatResult(extractResult(response.body))
 			} else {
-				if (probe.objectSearch === '' || probe.propertyPath === '') return
+				if (probe.objectSearch === '' || probe.propertyPath === '') return null
 				const response = await this.api.call(probe.target, 'GetProperty', {
 					ObjectSearch: probe.objectSearch,
 					PropertyPath: probe.propertyPath,
 				})
-				if (extractFailure(response.body)) return
-				const property = extractProperty(response.body)
-				const modified = propertyIsModified(property)
-				if (modified !== probe.modified) {
-					probe.modified = modified
-					markChanged()
+				if (!extractFailure(response.body)) {
+					const property = extractProperty(response.body)
+					const modified = propertyIsModified(property)
+					if (modified !== probe.modified) {
+						probe.modified = modified
+						markChanged()
+					}
+					value = formatPropertyValue(property)
 				}
-				value = formatPropertyValue(property)
 			}
 
 			if (probe.variableId && value !== undefined && value !== probe.lastValue) {
@@ -199,8 +238,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				this.setPropertyVariable(probe.variableId, probe.variableLabel ?? probe.variableId, value)
 				this.log('debug', `Watch ${probe.variableId} -> ${value}`)
 			}
+			// We received an HTTP response, so the Gateway is reachable.
+			return true
 		} catch {
-			// Network error already surfaces via the connection feedback; ignore here.
+			return false
 		}
 	}
 

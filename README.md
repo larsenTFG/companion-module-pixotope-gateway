@@ -18,5 +18,5 @@ the Pixotope Store, and keep Companion variables updated live. See
 ## Getting started
 
 Running `yarn` installs dependencies. Build once with `yarn build`, or use `yarn dev` to recompile
-on change. To develop against Companion, point Companion's *Developer modules path* at the folder
+on change. To develop against Companion, point Companion's _Developer modules path_ at the folder
 containing this module.

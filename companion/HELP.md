@@ -16,15 +16,43 @@ http://{Gateway IP}:{Port}/gateway/{API Version}/publish
 
 ### Connection settings
 
-| Field                 | Description                                                     | Default          |
-| --------------------- | --------------------------------------------------------------- | ---------------- |
-| Gateway IP            | IP address of the machine running Pixotope Gateway              | `127.0.0.1`      |
-| Gateway Port          | Gateway HTTP port                                               | `16208`          |
-| Gateway API Version   | Version segment of the publish URL; match your Pixotope install | `2.2.0`          |
-| Default Engine Target | Service name used when an action's target is left blank         | `~LOCAL~-Engine` |
-| State Poll Interval   | How often (ms) to check the connection; `0` disables polling    | `1000`           |
+| Field                     | Description                                                     | Default          |
+| ------------------------- | --------------------------------------------------------------- | ---------------- |
+| Gateway IP                | IP address of the machine running Pixotope Gateway              | `127.0.0.1`      |
+| Gateway Port              | Gateway HTTP port                                               | `16208`          |
+| Gateway API Version       | Version segment of the publish URL; match your Pixotope install | `2.2.0`          |
+| Default Engine Target     | Service name used when an action's target is left blank         | `~LOCAL~-Engine` |
+| Live Value Poll Interval  | How often (ms) live "watch" feedbacks refresh; lower = fresher  | `1000`           |
+| Connection Check Interval | Heartbeat used only when nothing is being watched; `0` disables | `5000`           |
 
 The connection indicator turns green once Gateway responds.
+
+### Network traffic & freshness (designed for live use)
+
+The module is built to keep watched values fresh without flooding the Gateway:
+
+- **Only what's on screen is polled.** A request is sent only for properties/values that have a
+  live **Watch** feedback attached. Nothing else is polled in the background.
+- **No redundant heartbeat.** While any value is being watched, those polls already prove the
+  Gateway is reachable, so the separate connection check is **skipped entirely** — the connection
+  indicator is driven by the watch traffic itself, so drops are detected promptly with zero extra
+  requests. The **Connection Check Interval** heartbeat only runs when nothing is being watched.
+- **Pooled keep-alive connection.** Requests reuse a small pool of sockets instead of opening a new
+  TCP connection each time, which is far gentler on the Gateway over a long session.
+- **No pile-ups.** A new poll never starts while the previous one is still in flight.
+
+Tune **Live Value Poll Interval** for the staleness/traffic trade-off: lower it (e.g. `500`) for
+mission-critical readouts, raise it to reduce traffic. Total traffic ≈ _(number of watch feedbacks)
+÷ (interval)_ requests per second. Actions fire immediately on press and are never delayed by polling.
+
+### Connection & reconnection
+
+If the Gateway becomes unreachable the indicator goes red, and the module **reconnects
+automatically** as soon as the Gateway responds again — no manual step is needed. To force a
+reconnect, disable and re-enable the connection (or open its config and Save).
+
+If the Pixotope Gateway process itself has stopped, only restarting Pixotope brings it back; that is
+a server-side condition the module cannot recover from.
 
 ### Actions
 

@@ -239,16 +239,28 @@ export class PixotopeApi {
 	private readonly port: number
 	private readonly version: string
 	private readonly timeout: number
+	/**
+	 * A single keep-alive agent with a capped socket pool. Reusing sockets avoids
+	 * hammering the Gateway with a new TCP connect/teardown on every poll, which is
+	 * gentler on the Gateway's HTTP server in a long-running production session.
+	 */
+	private readonly agent: http.Agent
 
 	constructor(host: string, port: number, version: string, timeoutMs = 5000) {
 		this.host = host
 		this.port = port
 		this.version = version
 		this.timeout = timeoutMs
+		this.agent = new http.Agent({ keepAlive: true, maxSockets: 4, maxFreeSockets: 2 })
 	}
 
 	get baseUrl(): string {
 		return `http://${this.host}:${this.port}/gateway/${this.version}/publish`
+	}
+
+	/** Close pooled sockets. Call when the module is destroyed or reconfigured. */
+	close(): void {
+		this.agent.destroy()
 	}
 
 	/** Send a raw Topic + Message to Gateway. Throws on network/timeout/HTTP error. */
@@ -268,6 +280,7 @@ export class PixotopeApi {
 						'Content-Length': Buffer.byteLength(payload),
 					},
 					timeout: this.timeout,
+					agent: this.agent,
 				},
 				(res) => {
 					const chunks: Buffer[] = []
