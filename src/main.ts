@@ -261,6 +261,11 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.setVariableValues({ connection_status: connected ? 'Connected' : 'Disconnected' })
 		if (changed) {
 			this.checkFeedbacks('connection_status')
+			// On dropping the connection, discard pooled sockets so the next poll
+			// opens a fresh connection rather than reusing a dead keep-alive socket.
+			// This is what lets the module reconnect on its own after the Gateway
+			// (Pixotope) restarts.
+			if (!connected) this.api.resetSockets()
 		}
 	}
 

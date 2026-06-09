@@ -240,18 +240,24 @@ export class PixotopeApi {
 	private readonly version: string
 	private readonly timeout: number
 	/**
-	 * A single keep-alive agent with a capped socket pool. Reusing sockets avoids
-	 * hammering the Gateway with a new TCP connect/teardown on every poll, which is
-	 * gentler on the Gateway's HTTP server in a long-running production session.
+	 * A keep-alive agent with a capped socket pool. Reusing sockets avoids hammering
+	 * the Gateway with a new TCP connect/teardown on every poll. It is recreated by
+	 * {@link resetSockets} after a failure so a stale/half-open socket (e.g. left over
+	 * from a Gateway restart) can never get stuck being reused, which would otherwise
+	 * keep the connection failed even once the Gateway is back.
 	 */
-	private readonly agent: http.Agent
+	private agent: http.Agent
 
 	constructor(host: string, port: number, version: string, timeoutMs = 5000) {
 		this.host = host
 		this.port = port
 		this.version = version
 		this.timeout = timeoutMs
-		this.agent = new http.Agent({ keepAlive: true, maxSockets: 4, maxFreeSockets: 2 })
+		this.agent = PixotopeApi.newAgent()
+	}
+
+	private static newAgent(): http.Agent {
+		return new http.Agent({ keepAlive: true, maxSockets: 4, maxFreeSockets: 2 })
 	}
 
 	get baseUrl(): string {
@@ -263,12 +269,34 @@ export class PixotopeApi {
 		this.agent.destroy()
 	}
 
+	/**
+	 * Drop all pooled sockets and start fresh. Call when the connection drops so the
+	 * next request opens a brand-new socket instead of reusing a possibly-dead one.
+	 */
+	resetSockets(): void {
+		this.agent.destroy()
+		this.agent = PixotopeApi.newAgent()
+	}
+
 	/** Send a raw Topic + Message to Gateway. Throws on network/timeout/HTTP error. */
 	async publish(request: PixotopeRequest): Promise<PixotopeResponse> {
 		const payload = JSON.stringify(request)
 		const url = new URL(this.baseUrl)
 
 		return new Promise<PixotopeResponse>((resolve, reject) => {
+			// Single-settle guards so the promise resolves/rejects exactly once.
+			let settled = false
+			const fail = (err: Error): void => {
+				if (settled) return
+				settled = true
+				reject(err)
+			}
+			const succeed = (value: PixotopeResponse): void => {
+				if (settled) return
+				settled = true
+				resolve(value)
+			}
+
 			const req = http.request(
 				{
 					hostname: url.hostname,
@@ -285,6 +313,7 @@ export class PixotopeApi {
 				(res) => {
 					const chunks: Buffer[] = []
 					res.on('data', (chunk: Buffer) => chunks.push(chunk))
+					res.on('error', (err) => fail(err))
 					res.on('end', () => {
 						const text = Buffer.concat(chunks).toString('utf8')
 						let body: unknown = text
@@ -297,18 +326,30 @@ export class PixotopeApi {
 						}
 						const status = res.statusCode ?? 0
 						if (status < 200 || status >= 300) {
-							reject(new Error(`Gateway responded ${status} ${res.statusMessage ?? ''}`.trim()))
+							fail(new Error(`Gateway responded ${status} ${res.statusMessage ?? ''}`.trim()))
 							return
 						}
-						resolve({ ok: true, status, body })
+						succeed({ ok: true, status, body })
 					})
 				},
 			)
 
-			req.on('error', (err) => reject(err))
+			// Hard ceiling: always settle within the timeout, even if the socket
+			// connect hangs or a reused keep-alive socket is half-open. Without this
+			// a stuck request could wedge the caller's no-overlap poll guard forever.
+			const hardTimer = setTimeout(() => {
+				// Destroy the socket (not just abort the request) so a half-open
+				// keep-alive socket is not returned to the pool and reused.
+				req.socket?.destroy()
+				req.destroy(new Error(`Gateway request timed out after ${this.timeout}ms`))
+			}, this.timeout)
+			req.on('close', () => clearTimeout(hardTimer))
+			req.on('error', (err) => fail(err))
 			req.on('timeout', () => {
+				req.socket?.destroy()
 				req.destroy(new Error(`Gateway request timed out after ${this.timeout}ms`))
 			})
+
 			req.write(payload)
 			req.end()
 		})
