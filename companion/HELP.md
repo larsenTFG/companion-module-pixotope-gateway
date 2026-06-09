@@ -57,6 +57,9 @@ You rarely type these by hand:
 - **Engine: Set Property** — set a property value. Paste the editor URL and enter the value.
 - **Engine: Get Property** — read a property value once (on press) into a Companion variable.
 - **Engine: Call Event (Blueprint)** — trigger a Blueprint event (CallFunction); paste the editor URL.
+  To pass arguments, append `ParamFunctionArguments` as a **JSON array with text values quoted**,
+  e.g. `…&ParamFunctionArguments=[10,"HELLO"]` (numbers bare, strings in quotes). Unquoted values
+  like `[10,HELLO]` work in a browser but not here, because the module needs valid JSON.
 - **Store: Set Value** — set a show-wide value in the Pixotope Store.
 - **Raw API Request** — send any Topic/Message; paste payloads captured from the Director API Log.
 - **Clear stored property variables** — remove all `$(pixotope:prop_*)` variables created at runtime.

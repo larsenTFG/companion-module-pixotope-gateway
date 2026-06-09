@@ -170,7 +170,7 @@ export function UpdateActions(self: ModuleInstance): void {
 		call_event: {
 			name: 'Engine: Call Event (Blueprint)',
 			description:
-				'Execute a Blueprint event (CallFunction). Paste the URL copied from the Pixotope editor — it carries the object and function name. (Function arguments are not handled yet.)',
+				'Execute a Blueprint event (CallFunction). Paste the URL copied from the Pixotope editor. To pass arguments, add ParamFunctionArguments as a JSON array with text values quoted, e.g. [10,"HELLO"].',
 			options: [
 				{
 					id: 'url',
@@ -179,7 +179,7 @@ export function UpdateActions(self: ModuleInstance): void {
 					default: '',
 					useVariables: true,
 					tooltip:
-						'Paste the CallFunction URL from the editor, e.g. …?Type=Call&Target=~LOCAL~-Engine&Method=CallFunction&ParamObjectSearch=BP_test_C_1&ParamFunctionName=PX_showMe',
+						'Paste the CallFunction URL from the editor, e.g. …&Method=CallFunction&ParamObjectSearch=BP_test_C_1&ParamFunctionName=PX_showMe. Arguments: append &ParamFunctionArguments=[10,"HELLO"] — a JSON array, text values must be quoted.',
 				},
 			],
 			callback: async (action, context) => {
