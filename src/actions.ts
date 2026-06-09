@@ -167,6 +167,35 @@ export function UpdateActions(self: ModuleInstance): void {
 			},
 		},
 
+		call_event: {
+			name: 'Engine: Call Event (Blueprint)',
+			description:
+				'Execute a Blueprint event (CallFunction). Paste the URL copied from the Pixotope editor — it carries the object and function name. (Function arguments are not handled yet.)',
+			options: [
+				{
+					id: 'url',
+					type: 'textinput',
+					label: 'Editor URL',
+					default: '',
+					useVariables: true,
+					tooltip:
+						'Paste the CallFunction URL from the editor, e.g. …?Type=Call&Target=~LOCAL~-Engine&Method=CallFunction&ParamObjectSearch=BP_test_C_1&ParamFunctionName=PX_showMe',
+				},
+			],
+			callback: async (action, context) => {
+				const url = (await context.parseVariablesInString(str(action.options.url))).trim()
+				if (url === '') {
+					self.log('warn', 'Call Event: no URL provided.')
+					return
+				}
+				try {
+					await self.sendRequest(parseGatewayUrl(url))
+				} catch (e) {
+					self.log('error', `Call Event: ${e instanceof Error ? e.message : String(e)}`)
+				}
+			},
+		},
+
 		set_store: {
 			name: 'Store: Set Value',
 			description: 'Set a value in the Pixotope Store (show-wide settings).',
