@@ -41,6 +41,12 @@ rebuild — no re-import needed.
 
 ## Changelog
 
+### 1.0.2
+
+- Added the **Engine: Call Event (Blueprint)** action — trigger Blueprint events (CallFunction),
+  with function arguments passed as a JSON array (e.g. `[10,"HELLO"]`).
+- Added Raw API Request usage examples and Call Event argument guidance to the in-app help.
+
 ### 1.0.1
 
 - Initial release: Set/Get Property, Store value, Raw API Request, connection & property feedbacks,

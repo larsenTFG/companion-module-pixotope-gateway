@@ -206,7 +206,7 @@ export function UpdateActions(self: ModuleInstance): void {
 					label: 'State Path',
 					default: '',
 					useVariables: true,
-					tooltip: 'e.g. State.General.CompositingColorSpace',
+					tooltip: 'e.g. State.General.FrameRate',
 				},
 				{
 					id: 'value',
