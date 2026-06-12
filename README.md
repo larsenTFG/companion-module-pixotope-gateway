@@ -41,10 +41,13 @@ rebuild — no re-import needed.
 
 ## Changelog
 
-### 1.0.2
+### 1.1.0
 
 - Added the **Engine: Call Event (Blueprint)** action — trigger Blueprint events (CallFunction),
   with function arguments passed as a JSON array (e.g. `[10,"HELLO"]`).
+- Hardened reconnection: the module now recovers on its own after the Gateway (Pixotope) restarts —
+  stale connections are dropped on a drop and every request is guaranteed to time out — fixing a
+  "connection failure" that could otherwise stay stuck.
 - Added Raw API Request usage examples and Call Event argument guidance to the in-app help.
 
 ### 1.0.1
